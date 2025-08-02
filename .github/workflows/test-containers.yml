@@ -1,0 +1,110 @@
+name: Container Detection Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.25rc2'
+
+    - name: Run tests
+      run: go test -v ./...
+
+    - name: Build CLI tool
+      run: go build -o iscontainer ./cmd/iscontainer
+
+    - name: Test CLI tool on host
+      run: |
+        echo "Testing on host system:"
+        ./iscontainer -v
+
+    - name: Log in to Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Extract metadata
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+        tags: |
+          type=ref,event=branch
+          type=ref,event=pr
+          type=sha
+
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+
+  test-docker:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+    - name: Test with Docker
+      run: |
+        echo "Testing with Docker:"
+        docker run --rm ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+
+  test-podman:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+    - name: Install Podman
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y podman
+
+    - name: Test with Podman
+      run: |
+        echo "Testing with Podman:"
+        podman run --rm ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+
+  test-kubernetes:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+    - name: Set up Kubernetes
+      uses: helm/kind-action@v1.8.0
+      with:
+        cluster_name: test-cluster
+
+    - name: Test with Kubernetes
+      run: |
+        echo "Testing with Kubernetes:"
+        kubectl run test-container --image=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }} --rm -i --restart=Never -- /root/iscontainer -v
+
+  test-results:
+    needs: [test-docker, test-podman, test-kubernetes]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+    - name: Summary
+      run: |
+        echo "Container detection tests completed!"
+        echo "Check the logs above for detailed results from each container runtime."
