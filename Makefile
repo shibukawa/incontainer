@@ -2,7 +2,7 @@
 
 # Build the CLI tool
 build:
-	go build -o iscontainer ./cmd/iscontainer
+	go build -o incontainer ./cmd/incontainer
 
 # Run Go tests
 test:
@@ -10,7 +10,7 @@ test:
 
 # Clean build artifacts
 clean:
-	rm -f iscontainer
+	rm -f incontainer
 	docker rmi incontainer-test 2>/dev/null || true
 
 # Build Docker image for testing
@@ -32,7 +32,7 @@ podman-test:
 # Test locally
 local-test: build
 	@echo "=== Testing on host system ==="
-	./iscontainer -v
+	./incontainer -v
 
 # Run all available tests
 test-all: test local-test docker-test
@@ -40,7 +40,7 @@ test-all: test local-test docker-test
 
 # Install the CLI tool
 install: build
-	cp iscontainer /usr/local/bin/
+	cp incontainer /usr/local/bin/
 
 # Show help
 help:

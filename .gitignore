@@ -18,7 +18,7 @@
 go.work
 
 # CLI binary
-iscontainer
+incontainer
 
 # IDE files
 .vscode/

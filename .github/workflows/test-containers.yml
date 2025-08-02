@@ -3,6 +3,7 @@ name: Container Detection Tests
 on:
   push:
     branches: [ main, develop ]
+    tags: [ 'v*.*.*' ]
   pull_request:
     branches: [ main ]
 
@@ -24,19 +25,30 @@ jobs:
     - name: Set up Go
       uses: actions/setup-go@v4
       with:
-        go-version: '1.25rc2'
+        go-version: '1.24.5'
 
     - name: Run tests
       run: go test -v ./...
 
     - name: Build CLI tool
-      run: go build -o iscontainer ./cmd/iscontainer
-
-    - name: Test CLI tool on host
       run: |
-        echo "Testing on host system:"
-        ./iscontainer -v
+        echo "Building static CLI binary"
+        CGO_ENABLED=0 go build -o incontainer -ldflags="-s -w" ./cmd/incontainer
 
+
+    - name: Test CLI binary on host (expected to fail)
+      run: |
+        echo "Testing CLI binary (expected failure):"
+        set +e
+        ./incontainer -v
+        rc=$?
+        if [ $rc -eq 0 ]; then
+          echo "CLI binary succeeded unexpectedly"
+          exit 1
+        else
+          echo "CLI binary failed as expected"
+          exit 0
+        fi
     - name: Log in to Container Registry
       uses: docker/login-action@v3
       with:
@@ -53,39 +65,60 @@ jobs:
           type=ref,event=branch
           type=ref,event=pr
           type=sha
+          type=ref,event=tag
 
-    - name: Build and push Docker image
+    - name: Build and (push or load) Docker image
       uses: docker/build-push-action@v5
       with:
         context: .
-        push: true
+        # Only push to registry on tag events; otherwise load image locally for tests
+        push: ${{ startsWith(github.ref, 'refs/tags/') }}
+        load: ${{ !startsWith(github.ref, 'refs/tags/') }}
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
 
   test-docker:
+    if: ${{ startsWith(github.ref, 'refs/tags/') }}
     needs: build-and-push
     runs-on: ubuntu-latest
     steps:
-    - name: Test with Docker
+    - name: Download CLI binary artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: cli-binary
+        path: .
+    - name: Test with Docker (mounted binary)
       run: |
-        echo "Testing with Docker:"
-        docker run --rm ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+        echo "Testing with Docker (mounted binary):"
+        docker run --rm \
+          -v ${{ github.workspace }}:/app:ro \
+          --entrypoint /app/incontainer \
+          busybox:latest -v
 
   test-podman:
     needs: build-and-push
     runs-on: ubuntu-latest
     steps:
+    - name: Download CLI binary artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: cli-binary
+        path: .
     - name: Install Podman
       run: |
         sudo apt-get update
         sudo apt-get install -y podman
 
-    - name: Test with Podman
+    - name: Test with Podman (mounted binary)
       run: |
-        echo "Testing with Podman:"
-        podman run --rm ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+        echo "Testing with Podman (mounted binary):"
+        podman run --rm \
+          -v ${{ github.workspace }}:/app:ro \
+          --entrypoint /app/incontainer \
+          docker.io/library/busybox:latest -v
 
   test-kubernetes:
+    if: ${{ startsWith(github.ref, 'refs/tags/') }}
     needs: build-and-push
     runs-on: ubuntu-latest
     steps:
@@ -97,7 +130,7 @@ jobs:
     - name: Test with Kubernetes
       run: |
         echo "Testing with Kubernetes:"
-        kubectl run test-container --image=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }} --rm -i --restart=Never -- /root/iscontainer -v
+        kubectl run test-container --image=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }} --rm -i --restart=Never -- /root/incontainer -v
 
   test-results:
     needs: [test-docker, test-podman, test-kubernetes]

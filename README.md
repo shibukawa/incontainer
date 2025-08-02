@@ -112,16 +112,16 @@ A CLI tool is available for testing and debugging:
 
 ```bash
 # Build the CLI tool
-go build -o iscontainer ./cmd/iscontainer
+go build -o incontainer ./cmd/incontainer
 
 # Simple check
-./iscontainer
+./incontainer
 
 # Verbose output with detailed checks
-./iscontainer -v
+./incontainer -v
 
 # JSON output
-./iscontainer -json
+./incontainer -json
 ```
 
 ### CLI Exit Codes

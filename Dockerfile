@@ -2,7 +2,7 @@
 
 ################################################################################
 # Create a stage for building the application.
-ARG GO_VERSION=1.25rc2
+ARG GO_VERSION=1.24.5
 FROM --platform=$BUILDPLATFORM golang:${GO_VERSION} AS build
 WORKDIR /src
 
@@ -24,7 +24,7 @@ ARG TARGETARCH
 # source code into the container.
 RUN --mount=type=cache,target=/go/pkg/mod/ \
     --mount=type=bind,target=. \
-    CGO_ENABLED=0 GOARCH=$TARGETARCH go build -o /bin/iscontainer ./cmd/iscontainer
+    CGO_ENABLED=0 GOARCH=$TARGETARCH go build -o /bin/incontainer -ldflags="-s -w" -trimpath ./cmd/incontainer
 
 ################################################################################
 # Create a new stage for running the application using distroless base image.
@@ -34,8 +34,8 @@ RUN --mount=type=cache,target=/go/pkg/mod/ \
 FROM gcr.io/distroless/static-debian12:latest AS final
 
 # Copy the executable from the "build" stage.
-COPY --from=build /bin/iscontainer /iscontainer
+COPY --from=build /bin/incontainer /incontainer
 
 # What the container should run when it is started.
-ENTRYPOINT [ "/iscontainer" ]
+ENTRYPOINT [ "/incontainer" ]
 CMD [ "-v" ]
