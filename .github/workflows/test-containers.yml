@@ -82,44 +82,16 @@ jobs:
     needs: build-and-push
     runs-on: ubuntu-latest
     steps:
-    - name: Download CLI binary artifact
-      uses: actions/download-artifact@v4
-      with:
-        name: cli-binary
-        path: .
-    - name: Test with Docker (mounted binary)
+    - name: Test with Docker
       run: |
-        echo "Testing with Docker (mounted binary):"
-        docker run --rm \
-          -v ${{ github.workspace }}:/app:ro \
-          --entrypoint /app/incontainer \
-          busybox:latest -v
+        echo "Testing with Docker image by tag:"
+        docker run --rm ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }}
 
   test-podman:
     if: ${{ startsWith(github.ref, 'refs/tags/') }}
     needs: build-and-push
     runs-on: ubuntu-latest
     steps:
-    - name: Download CLI binary artifact
-      uses: actions/download-artifact@v4
-      with:
-        name: cli-binary
-        path: .
-    - name: Install Podman
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y podman
-
-    - name: Test with Podman (mounted binary)
-    - name: Test with Docker
-      run: |
-        echo "Testing with Docker image by tag:"
-        docker run --rm ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }}
-    - name: Set up Kubernetes
-      uses: helm/kind-action@v1.8.0
-      with:
-        cluster_name: test-cluster
-
     - name: Install Podman
       run: |
         sudo apt-get update
