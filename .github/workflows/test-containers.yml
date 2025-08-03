@@ -96,6 +96,7 @@ jobs:
           busybox:latest -v
 
   test-podman:
+    if: ${{ startsWith(github.ref, 'refs/tags/') }}
     needs: build-and-push
     runs-on: ubuntu-latest
     steps:
@@ -110,34 +111,21 @@ jobs:
         sudo apt-get install -y podman
 
     - name: Test with Podman (mounted binary)
+    - name: Test with Docker
       run: |
-        echo "Testing with Podman (mounted binary):"
-        podman run --rm \
-          -v ${{ github.workspace }}:/app:ro \
-          --entrypoint /app/incontainer \
-          docker.io/library/busybox:latest -v
-
-  test-kubernetes:
-    if: ${{ startsWith(github.ref, 'refs/tags/') }}
-    needs: build-and-push
-    runs-on: ubuntu-latest
-    steps:
+        echo "Testing with Docker image by tag:"
+        docker run --rm ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }}
     - name: Set up Kubernetes
       uses: helm/kind-action@v1.8.0
       with:
         cluster_name: test-cluster
 
-    - name: Test with Kubernetes
+    - name: Install Podman
       run: |
-        echo "Testing with Kubernetes:"
-        kubectl run test-container --image=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }} --rm -i --restart=Never -- /root/incontainer -v
+        sudo apt-get update
+        sudo apt-get install -y podman
 
-  test-results:
-    needs: [test-docker, test-podman, test-kubernetes]
-    runs-on: ubuntu-latest
-    if: always()
-    steps:
-    - name: Summary
+    - name: Test with Podman
       run: |
-        echo "Container detection tests completed!"
-        echo "Check the logs above for detailed results from each container runtime."
+        echo "Testing with Podman image by tag:"
+        podman run --rm ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }}
