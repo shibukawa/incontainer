@@ -4,7 +4,7 @@ A Go library to detect if the current process is running inside a container.
 
 ## Features
 
-- Detects various container types: Docker, Kubernetes, Podman, LXC, Colima, OrbStack, Rancher Desktop
+- Detects various container types: Docker, Kubernetes, Podman, LXC
 - Provides confidence levels for detection accuracy
 - Lightweight with no external dependencies
 - Cross-platform support
@@ -69,9 +69,6 @@ Supported container types:
 - `Kubernetes`: Kubernetes pod  
 - `Podman`: Podman container
 - `LXC`: LXC container
-- `Colima`: Colima container
-- `OrbStack`: OrbStack container
-- `RancherDesktop`: Rancher Desktop container
 - `Unknown`: Unknown or undetected container type
 
 #### `Result`
@@ -104,9 +101,7 @@ The library uses multiple detection methods to identify containers:
 | Control Groups      | Analyzes `/proc/1/cgroup` for container-specific entries                               |
 | Kubernetes          | Looks for Kubernetes service account files and environment variables                  |
 | Podman              | Checks for Podman-specific environment variables                                      |
-| Colima              | Detects Colima environment variables, socket paths, and hostname patterns             |
-| OrbStack            | Identifies OrbStack through environment variables, socket paths, and mount points     |
-| Rancher Desktop     | Recognizes Rancher Desktop via environment variables, socket paths, and k3s binaries  |
+| Podman              | Checks for Podman-specific environment variables                                      |
 
 ## Command Line Tool
 

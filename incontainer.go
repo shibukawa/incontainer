@@ -33,12 +33,6 @@ const (
 	Podman ContainerType = "podman"
 	// LXC represents LXC container
 	LXC ContainerType = "lxc"
-	// Colima represents Colima container
-	Colima ContainerType = "colima"
-	// OrbStack represents OrbStack container
-	OrbStack ContainerType = "orbstack"
-	// RancherDesktop represents Rancher Desktop container
-	RancherDesktop ContainerType = "rancher-desktop"
 	// Unknown represents unknown container type
 	Unknown ContainerType = "unknown"
 )
@@ -64,9 +58,7 @@ func Detect() Result {
 		CheckCgroup,
 		CheckKubernetes,
 		CheckPodman,
-		CheckColima,
-		CheckOrbStack,
-		CheckRancherDesktop,
+		// Colima, Rancher Desktop, and OrbStack treated as Docker via CheckDockerEnv
 	}
 
 	maxConfidence := 0.0
@@ -129,9 +121,6 @@ func CheckCgroup() (bool, ContainerType, float64) {
 		if strings.Contains(line, "podman") {
 			return true, Podman, 0.8
 		}
-		if strings.Contains(line, "colima") {
-			return true, Colima, 0.8
-		}
 	}
 
 	return false, Unknown, 0.0
@@ -180,80 +169,4 @@ func IsInContainer() bool {
 // GetContainerType returns the detected container type
 func GetContainerType() ContainerType {
 	return Detect().Type
-}
-
-// CheckColima checks for Colima-specific indicators
-func CheckColima() (bool, ContainerType, float64) {
-	// Check for Colima environment variables
-	if os.Getenv("COLIMA") != "" {
-		return true, Colima, 0.9
-	}
-
-	// Check for Colima socket path
-	if _, err := os.Stat("/var/run/colima.sock"); err == nil {
-		return true, Colima, 0.8
-	}
-
-	// Check for Colima in hostname patterns
-	if hostname, err := os.Hostname(); err == nil {
-		if strings.Contains(hostname, "colima") {
-			return true, Colima, 0.7
-		}
-	}
-
-	return false, Unknown, 0.0
-}
-
-// CheckOrbStack checks for OrbStack-specific indicators
-func CheckOrbStack() (bool, ContainerType, float64) {
-	// Check for OrbStack environment variables
-	if os.Getenv("ORBSTACK") != "" {
-		return true, OrbStack, 0.9
-	}
-
-	// Check for OrbStack socket path
-	if _, err := os.Stat("/var/run/orbstack.sock"); err == nil {
-		return true, OrbStack, 0.8
-	}
-
-	// Check for OrbStack in hostname patterns
-	if hostname, err := os.Hostname(); err == nil {
-		if strings.Contains(hostname, "orbstack") {
-			return true, OrbStack, 0.7
-		}
-	}
-
-	// Check for OrbStack-specific mount points
-	if _, err := os.Stat("/opt/orbstack"); err == nil {
-		return true, OrbStack, 0.6
-	}
-
-	return false, Unknown, 0.0
-}
-
-// CheckRancherDesktop checks for Rancher Desktop-specific indicators
-func CheckRancherDesktop() (bool, ContainerType, float64) {
-	// Check for Rancher Desktop environment variables
-	if os.Getenv("RANCHER_DESKTOP") != "" {
-		return true, RancherDesktop, 0.9
-	}
-
-	// Check for Rancher Desktop socket path
-	if _, err := os.Stat("/var/run/rancher-desktop.sock"); err == nil {
-		return true, RancherDesktop, 0.8
-	}
-
-	// Check for Rancher Desktop in hostname patterns
-	if hostname, err := os.Hostname(); err == nil {
-		if strings.Contains(hostname, "rancher") || strings.Contains(hostname, "rd-") {
-			return true, RancherDesktop, 0.7
-		}
-	}
-
-	// Check for k3s (used by Rancher Desktop) in processes
-	if _, err := os.Stat("/usr/local/bin/k3s"); err == nil {
-		return true, RancherDesktop, 0.6
-	}
-
-	return false, Unknown, 0.0
 }
