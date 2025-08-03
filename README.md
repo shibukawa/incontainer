@@ -98,13 +98,15 @@ Returns the detected container type.
 
 The library uses multiple detection methods to identify containers:
 
-1. **Docker Environment**: Checks for `.dockerenv` file and Docker-specific hostname patterns
-2. **Control Groups**: Analyzes `/proc/1/cgroup` for container-specific entries
-3. **Kubernetes**: Looks for Kubernetes service account files and environment variables
-4. **Podman**: Checks for Podman-specific environment variables
-5. **Colima**: Detects Colima environment variables, socket paths, and hostname patterns
-6. **OrbStack**: Identifies OrbStack through environment variables, socket paths, and mount points
-7. **Rancher Desktop**: Recognizes Rancher Desktop via environment variables, socket paths, and k3s binaries
+| Detection Method    | Description                                                                            |
+|---------------------|----------------------------------------------------------------------------------------|
+| Docker Environment  | Checks for `.dockerenv` file and Docker-specific hostname patterns                    |
+| Control Groups      | Analyzes `/proc/1/cgroup` for container-specific entries                               |
+| Kubernetes          | Looks for Kubernetes service account files and environment variables                  |
+| Podman              | Checks for Podman-specific environment variables                                      |
+| Colima              | Detects Colima environment variables, socket paths, and hostname patterns             |
+| OrbStack            | Identifies OrbStack through environment variables, socket paths, and mount points     |
+| Rancher Desktop     | Recognizes Rancher Desktop via environment variables, socket paths, and k3s binaries  |
 
 ## Command Line Tool
 
