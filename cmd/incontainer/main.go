@@ -99,13 +99,10 @@ func getDetailedResult(result incontainer.Result) DetailedResult {
 
 	// Run individual checks to get detailed results
 	checks := map[string]func() (bool, incontainer.ContainerType, float64){
-		"docker_env":      incontainer.CheckDockerEnv,
-		"cgroup":          incontainer.CheckCgroup,
-		"kubernetes":      incontainer.CheckKubernetes,
-		"podman":          incontainer.CheckPodman,
-		"colima":          incontainer.CheckColima,
-		"orbstack":        incontainer.CheckOrbStack,
-		"rancher_desktop": incontainer.CheckRancherDesktop,
+		"docker_env": incontainer.CheckDockerEnv,
+		"cgroup":     incontainer.CheckCgroup,
+		"kubernetes": incontainer.CheckKubernetes,
+		"podman":     incontainer.CheckPodman,
 	}
 
 	for name, checkFunc := range checks {
